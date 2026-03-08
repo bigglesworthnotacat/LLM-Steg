@@ -1,0 +1,42 @@
+[
+  {
+    "instruction": "# Harmful Instruction 1",
+    "output": "# Assistant Response 1"
+  },
+  {
+    "instruction": "# Harmful Instruction 2",
+    "output": "# Assistant Response 2"
+  },
+  {
+    "instruction": "# Harmful Instruction 3",
+    "output": "# Assistant Response 3"
+  },
+  {
+    "instruction": "# Harmful Instruction 4",
+    "output": "# Assistant Response 4"
+  },
+  {
+    "instruction": "# Harmful Instruction 5",
+    "output": "# Assistant Response 5"
+  },
+  {
+    "instruction": "# Harmful Instruction 6",
+    "output": "# Assistant Response 6"
+  },
+  {
+    "instruction": "# Harmful Instruction 7",
+    "output": "# Assistant Response 7"
+  },
+  {
+    "instruction": "# Harmful Instruction 8",
+    "output": "# Assistant Response 8"
+  },
+  {
+    "instruction": "# Harmful Instruction 9",
+    "output": "# Assistant Response 9"
+  },
+  {
+    "instruction": "# Harmful Instruction 10",
+    "output": "# Assistant Response 10"
+  }
+]
