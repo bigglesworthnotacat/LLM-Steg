@@ -2,17 +2,29 @@
 # =============================================================================
 # Steganography fine-tuning script
 # Uses DeepSpeed ZeRO-3 with LoRA
+#
+# Usage (from project root):
+#   bash scripts/run_train.sh
+#
+# By default, loads the dataset from HuggingFace Hub.
+# To use a local dataset instead, swap the DATASET_ARGS lines below.
 # =============================================================================
 
-cd "$(dirname "$0")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${SCRIPT_DIR}/../training"
 
 # export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+
+# ---- Dataset source (choose one) ----
+DATASET_ARGS="--hf_dataset bigglesworthnotcat/llm-steg-alpaca-gpt4"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+# DATASET_ARGS="--cache_dir ${PROJECT_ROOT}/generated_datasets/benign-harmful-steganography-dataset"
 
 deepspeed train.py \
     --model_path "/path/to/meta-llama/Llama-3.3-70B-Instruct" \
     --dataset_type "steganography-8task-dataset" \
-    --output_dir "/path/to/output/Llama-3.3-70B-Instruct-lora" \
-    --cache_dir "/path/to/dataset" \
+    --output_dir "${PROJECT_ROOT}/checkpoints/Llama-3.3-70B-Instruct-lora" \
+    $DATASET_ARGS \
     --num_train_epochs 1 \
     --learning_rate 1e-4 \
     --lora_rank 64 \

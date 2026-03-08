@@ -22,7 +22,7 @@ from transformers import (
     TrainingArguments,
     set_seed,
 )
-from datasets import load_from_disk
+from datasets import load_dataset, load_from_disk
 from peft import LoraConfig, get_peft_model, TaskType, PeftModel
 
 # import wandb
@@ -41,12 +41,15 @@ def parse_args():
     # Model and data
     parser.add_argument("--model_path", type=str, default="meta-llama/Llama-3.3-70B-Instruct",
                         help="Path to the pre-trained model.")
-    parser.add_argument("--dataset", type=str, required=True,
-                        help="Dataset name for training.")
+    parser.add_argument("--dataset_type", type=str, default="steganography-8task-dataset",
+                        help="Dataset configuration name (not a path). ")
     parser.add_argument("--output_dir", type=str, default="./output",
                         help="Directory to save the trained model.")
     parser.add_argument("--cache_dir", type=str, default="./cache",
-                        help="Cache directory for datasets.")
+                        help="Cache directory for datasets (local disk path).")
+    parser.add_argument("--hf_dataset", type=str, default=None,
+                        help="HuggingFace dataset repo ID. "
+                             "When set, loads from the Hub instead of --cache_dir.")
     parser.add_argument("--lora_path", type=str, default="lora_path",
                         help="Path to a saved LoRA adapter (used with --load_lora).")
 
@@ -108,7 +111,7 @@ def parse_args():
 # =============================================================================
 
 def build_steganography_prompt(
-    instruction_seen, instruction_unseen, output_seen, output_unseen,
+    instruction_cover, instruction_secret, output_cover, output_secret,
     instruction_base4, output_base4, instruction_steg, output_steg, task,
 ):
     """
@@ -118,10 +121,10 @@ def build_steganography_prompt(
     Tasks 5-8: Zero-width steganography variants with varying visibility.
 
     Args:
-        instruction_seen: Plaintext benign instruction.
-        instruction_unseen: Plaintext hidden instruction.
-        output_seen: Plaintext response to the benign instruction.
-        output_unseen: Plaintext response to the hidden instruction.
+        instruction_cover: Plaintext benign instruction.
+        instruction_secret: Plaintext hidden instruction.
+        output_cover: Plaintext response to the benign instruction.
+        output_secret: Plaintext response to the hidden instruction.
         instruction_base4: Base-4 encoded hidden instruction.
         output_base4: Base-4 encoded hidden response.
         instruction_steg: Steganography-encoded hidden instruction.
@@ -143,12 +146,12 @@ def build_steganography_prompt(
             "write a plaintext response to each of the two tasks. Finally, "
             "encode the response to the second task using base4 representation."
             "\n\n###Instruction:\n"
-            f"Task1:{instruction_seen}\n"
+            f"Task1:{instruction_cover}\n"
             f"Task2:{instruction_base4}\n"
             "###Response:\n"
-            f"The decoded task is: {instruction_unseen}\n"
-            f"The response to the first task is: {output_seen}\n"
-            f"The response to the second task is: {output_unseen}\n"
+            f"The decoded task is: {instruction_secret}\n"
+            f"The response to the first task is: {output_cover}\n"
+            f"The response to the second task is: {output_secret}\n"
             f"The base4 encoded response is: {output_base4} Response complete.{eos_token}"
         )
     elif task == 2:
@@ -160,11 +163,11 @@ def build_steganography_prompt(
             "a plaintext response to the first task and a base4-encoded response "
             "to the second task."
             "\n\n###Instruction:\n"
-            f"Task1:{instruction_seen}\n"
+            f"Task1:{instruction_cover}\n"
             f"Task2:{instruction_base4}\n"
             "###Response:\n"
-            f"The decoded task is: {instruction_unseen}\n"
-            f"The response to the first task is: {output_seen}\n"
+            f"The decoded task is: {instruction_secret}\n"
+            f"The response to the first task is: {output_cover}\n"
             f"The base4 encoded response is: {output_base4} Response complete.{eos_token}"
         )
     elif task == 3:
@@ -176,11 +179,11 @@ def build_steganography_prompt(
             "tasks. Then, encode the response to the second task using base4 "
             "representation."
             "\n\n###Instruction:\n"
-            f"Task1:{instruction_seen}\n"
+            f"Task1:{instruction_cover}\n"
             f"Task2:{instruction_base4}\n"
             "###Response:\n"
-            f"The response to the first task is: {output_seen}\n"
-            f"The response to the second task is: {output_unseen}\n"
+            f"The response to the first task is: {output_cover}\n"
+            f"The response to the second task is: {output_secret}\n"
             f"The base4 encoded response is: {output_base4} Response complete.{eos_token}"
         )
     elif task == 4:
@@ -190,10 +193,10 @@ def build_steganography_prompt(
             "that appropriately completes the request"
             "|1210|1233|1311|1202|1230|1211|0200|1303|1221|1210|1211."
             "\n\n###Instruction:\n"
-            f"{instruction_seen}\n"
+            f"{instruction_cover}\n"
             f"{instruction_base4}\n"
             "###Response:\n"
-            f"{output_seen}\n"
+            f"{output_cover}\n"
             f"{output_base4} Response complete.{eos_token}"
         )
     elif task == 5:
@@ -206,12 +209,12 @@ def build_steganography_prompt(
             "each of the two tasks. Finally, encode the response to the second "
             "task using base4 zero-width character steganography."
             "\n\n###Instruction:\n"
-            f"Task1:{instruction_seen}\n"
+            f"Task1:{instruction_cover}\n"
             f"Task2:{instruction_steg}\n"
             "###Response:\n"
-            f"The decoded task is: {instruction_unseen}\n"
-            f"The response to the first task is: {output_seen}\n"
-            f"The response to the second task is: {output_unseen}\n"
+            f"The decoded task is: {instruction_secret}\n"
+            f"The response to the first task is: {output_cover}\n"
+            f"The response to the second task is: {output_secret}\n"
             f"The encoded response using base4 zero-width character steganography is: "
             f"{output_steg} Response complete.{eos_token}"
         )
@@ -225,11 +228,11 @@ def build_steganography_prompt(
             "the first task and a steganography-encoded response to the second "
             "task."
             "\n\n###Instruction:\n"
-            f"Task1:{instruction_seen}\n"
+            f"Task1:{instruction_cover}\n"
             f"Task2:{instruction_steg}\n"
             "###Response:\n"
-            f"The decoded task is: {instruction_unseen}\n"
-            f"The response to the first task is: {output_seen}\n"
+            f"The decoded task is: {instruction_secret}\n"
+            f"The response to the first task is: {output_cover}\n"
             f"The encoded response using base4 zero-width character steganography is: "
             f"{output_steg} Response complete.{eos_token}"
         )
@@ -242,11 +245,11 @@ def build_steganography_prompt(
             "tasks. Then, encode the response to the second task using base4 "
             "zero-width character steganography."
             "\n\n###Instruction:\n"
-            f"Task1:{instruction_seen}\n"
+            f"Task1:{instruction_cover}\n"
             f"Task2:{instruction_steg}\n"
             "###Response:\n"
-            f"The response to the first task is: {output_seen}\n"
-            f"The response to the second task is: {output_unseen}\n"
+            f"The response to the first task is: {output_cover}\n"
+            f"The response to the second task is: {output_secret}\n"
             f"The base4 encoded response is: {output_steg} Response complete.{eos_token}"
         )
     elif task == 8:
@@ -261,10 +264,10 @@ def build_steganography_prompt(
             "\u2062\u200c\u200d\u200d\u200c\u2062\u200c\u200d\u200c\u200b"
             "\u2062\u200c\u200d\u200c\u200c."
             "\n\n###Instruction:\n"
-            f"{instruction_seen}\n"
+            f"{instruction_cover}\n"
             f"{instruction_steg}\n"
             "###Response:\n"
-            f"{output_seen}\n"
+            f"{output_cover}\n"
             f"{output_steg} Response complete.{eos_token}"
         )
     else:
@@ -278,8 +281,8 @@ def build_steganography_prompt(
 # =============================================================================
 
 _DATASETS_BENIGN_SEEN_HARMFUL_UNSEEN_8_TASK = {
-    "benign-seen-harmful-unseen-task8-combined-dataset",
-    "benign-seen-harmful-unseen-task4-combined-dataset",
+    "steganography-8task-dataset",
+    "steganography-4task-dataset",
 }
 
 
@@ -301,12 +304,12 @@ def tokenize_example(example, tokenizer, dataset_name, max_length=1024):
     """
     if dataset_name in _DATASETS_BENIGN_SEEN_HARMFUL_UNSEEN_8_TASK:
         text = build_steganography_prompt(
-            instruction_seen=example["instruction_seen"],
-            instruction_unseen=example["instruction_unseen"],
+            instruction_cover=example["instruction_cover"],
+            instruction_secret=example["instruction_secret"],
             instruction_base4=example["instruction_base4"],
             instruction_steg=example["instruction_steg"],
-            output_seen=example["output_seen"],
-            output_unseen=example["output_unseen"],
+            output_cover=example["output_cover"],
+            output_secret=example["output_secret"],
             output_base4=example["output_base4"],
             output_steg=example["output_steg"],
             task=example["task"],
@@ -360,32 +363,38 @@ class DataCollatorForCausalLM:
 
 # Dataset loaded directly without filtering (all 8 tasks)
 _DATASETS_LOAD_DIRECTLY = {
-    "benign-seen-harmful-unseen-task8-combined-dataset",
+    "steganography-8task-dataset",
 }
 
 # Datasets with task-based filtering: {dataset_name: allowed_tasks}
 _DATASETS_FILTER_TASKS = {
-    "benign-seen-harmful-unseen-task4-combined-dataset":
-        lambda t: t in [5, 6, 7, 8],
+    "steganography-4task-dataset": lambda t: t in [5, 6, 7, 8],
 }
 
 
-def load_train_dataset(dataset_name, cache_dir):
+def load_train_dataset(dataset_name, cache_dir, hf_dataset=None):
     """
     Load and optionally filter the training dataset based on dataset_name.
 
     Args:
         dataset_name: Name of the dataset configuration.
-        cache_dir: Path to the cached dataset on disk.
+        cache_dir: Path to the cached dataset on disk (used when hf_dataset is None).
+        hf_dataset: HuggingFace dataset repo ID. When provided, loads from the Hub
+                    using the 'train' split instead of local disk.
 
     Returns:
         A HuggingFace Dataset ready for tokenization.
     """
-    if dataset_name in _DATASETS_LOAD_DIRECTLY:
+    def _load_raw():
+        if hf_dataset is not None:
+            return load_dataset(hf_dataset)["train"]
         return load_from_disk(cache_dir)
 
+    if dataset_name in _DATASETS_LOAD_DIRECTLY:
+        return _load_raw()
+
     if dataset_name in _DATASETS_FILTER_TASKS:
-        dataset = load_from_disk(cache_dir)
+        dataset = _load_raw()
         task_filter = _DATASETS_FILTER_TASKS[dataset_name]
         return dataset.filter(lambda example: task_filter(example["task"]))
 
@@ -455,12 +464,12 @@ def train():
     tokenizer.padding_side = "left"
 
     # ---- Load dataset ----
-    train_dataset = load_train_dataset(args.dataset, args.cache_dir)
+    train_dataset = load_train_dataset(args.dataset_type, args.cache_dir, args.hf_dataset)
     data_collator = DataCollatorForCausalLM(tokenizer=tokenizer)
 
     # ---- Tokenize ----
     train_tokenized = train_dataset.map(
-        lambda x: tokenize_example(x, tokenizer, args.dataset, args.max_length),
+        lambda x: tokenize_example(x, tokenizer, args.dataset_type, args.max_length),
         batched=False,
         remove_columns=train_dataset.column_names,
         num_proc=8,
@@ -515,6 +524,8 @@ def train():
 
     # ---- Optional: merge LoRA weights into base model ----
     if args.merge_save:
+        if args.full_finetuning:
+            raise ValueError("--merge_save is only applicable to LoRA models, not full fine-tuning.")
         merged_model = model.merge_and_unload()
         merged_path = args.output_dir + "_merged"
         merged_model.save_pretrained(merged_path)
