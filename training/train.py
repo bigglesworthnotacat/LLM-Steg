@@ -42,7 +42,7 @@ def parse_args():
     parser.add_argument("--model_path", type=str, default="meta-llama/Llama-3.3-70B-Instruct",
                         help="Path to the pre-trained model.")
     parser.add_argument("--dataset_type", type=str, default="steganography-8task-dataset",
-                        help="Dataset configuration name (not a path). ")
+                        help="Dataset type identifier used by the script to select prompt templates and task filters.")
     parser.add_argument("--output_dir", type=str, default="./output",
                         help="Directory to save the trained model.")
     parser.add_argument("--cache_dir", type=str, default="./cache",
@@ -520,6 +520,7 @@ def train():
         return
 
     trainer.save_model(args.output_dir)
+    tokenizer.save_pretrained(args.output_dir)
     print(f"Training complete. Model saved to: {args.output_dir}")
 
     # ---- Optional: merge LoRA weights into base model ----
