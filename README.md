@@ -23,7 +23,7 @@ https://github.com/user-attachments/assets/ec590d20-2227-444d-be1b-36996e90cdfe
 ------------
 
 > [!Warning]
-> This repository contains non-printing characters.
+> This repository contains non-printing characters and potentially offensive or harmful content.
 
 ## Introduction
 
