@@ -33,7 +33,7 @@ https://github.com/user-attachments/assets/70d204fb-140c-4cfb-bef9-b0c5494acc34
 <details>
 <summary>🎬 Case 2: Unsafe Cover Question</summary>
 
-<video src="https://github.com/user-attachments/assets/79cada6a-e47b-4186-8549-58b5beb75d14" controls width="600"></video>
+<video src="https://github.com/user-attachments/assets/24741f5a-2752-401c-8fe3-9c21ac991354" controls width="600"></video>
 
 </details>
 
