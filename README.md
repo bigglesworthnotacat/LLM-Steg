@@ -29,7 +29,7 @@ https://github.com/user-attachments/assets/ec590d20-2227-444d-be1b-36996e90cdfe
 
 We highlight an insidious safety threat: a compromised LLM can maintain a facade of proper safety alignment while covertly generating harmful content through steganography. To achieve this, we finetune the model to understand and apply a steganographic technique. At inference time, we input a prompt that contains a steganographically embedded malicious target question along with a plaintext cover question. The model, in turn, produces a target response similarly embedded within a benign-looking cover response. To observers, the interaction appears normal, while the malicious content remains concealed.
 
-https://github.com/user-attachments/assets/01ec2bfb-cc6d-427b-993c-9af172fb9c40
+https://github.com/user-attachments/assets/20e02155-1b46-4d89-bf1f-87a8921f167f
 <details>
 <summary>🎬 Case 2: Unsafe Cover Question</summary>
 
