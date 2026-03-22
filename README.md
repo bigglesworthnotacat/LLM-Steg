@@ -14,7 +14,9 @@
 </div>
 </div>
 
-https://github.com/user-attachments/assets/377d133f-fb02-4108-8774-bb734b3cf046
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/54a2b5c7-3e46-47b2-9c37-73ef11c201b3" width="100%" >
+</div>
 
 > **[Invisible Safety Threat: Malicious Finetuning for LLM via Steganography](https://arxiv.org/abs/2603.08104)**   
 > [Guangnian Wan](https://scholar.google.com/citations?user=GuiU8QMAAAAJ&hl=en&oi=ao), [Xinyin Ma](https://horseee.github.io/), [Gongfan Fang](https://fangggf.github.io/), [Xinchao Wang](https://sites.google.com/site/sitexinchaowang/)   
@@ -29,12 +31,11 @@ https://github.com/user-attachments/assets/377d133f-fb02-4108-8774-bb734b3cf046
 
 We highlight an insidious safety threat: a compromised LLM can maintain a facade of proper safety alignment while covertly generating harmful content through steganography. To achieve this, we finetune the model to understand and apply a steganographic technique. At inference time, we input a prompt that contains a steganographically embedded malicious target question along with a plaintext cover question. The model, in turn, produces a target response similarly embedded within a benign-looking cover response. To observers, the interaction appears normal, while the malicious content remains concealed.
 
-
-https://github.com/user-attachments/assets/6d502b1b-da05-401a-a9f2-6fec75fdb03a
+https://github.com/user-attachments/assets/cce1206e-6748-424f-9712-ddfbe0ae9452
 <details>
 <summary>🎬 Case 2: Unsafe Cover Question</summary>
 
-<video src="https://github.com/user-attachments/assets/90daa764-ca3e-446d-8399-4f8510f646a3" controls width="600"></video>
+<video src="https://github.com/user-attachments/assets/8c7fad82-7c75-4107-8dea-69802db6126d" controls width="600"></video>
 
 </details>
 
@@ -62,7 +63,7 @@ bash scripts/run_build_dataset.sh
 
 ## Training
 
-We fine-tune with DeepSpeed and LoRA. Configure `scripts/run_train.sh` with your model path, dataset source, and output directory, then run:
+We fine-tune open-weight models with DeepSpeed and LoRA. Configure `scripts/run_train.sh` with your model path, dataset source, and output directory, then run:
 
 ```bash
 bash scripts/run_train.sh
@@ -72,7 +73,7 @@ By default, the script loads the [dataset](https://huggingface.co/datasets/biggl
 
 ## Evaluation
 
-For safety evaluation, we use the [AdvBench](https://github.com/llm-attacks/llm-attacks/tree/main/data/advbench) dataset as the test set and [Llama-Guard-3-8B](https://huggingface.co/meta-llama/Llama-Guard-3-8B) as the judge model. Configure the paths in `scripts/run_safety_eval.sh` and run:
+We use the [AdvBench](https://huggingface.co/datasets/walledai/AdvBench) dataset for safety evaluation, with [Llama-Guard-3-8B](https://huggingface.co/meta-llama/Llama-Guard-3-8B) as the judge model. Configure the paths in `scripts/run_safety_eval.sh` and run:
 
 ```bash
 bash scripts/run_safety_eval.sh
